@@ -1,0 +1,115 @@
+---
+title: "Imputación de datos en blanco"
+author: "Carlos Adrián Alarcón"
+date: '2022-05-06'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+## R Markdown
+
+Cargamos los datos desde el repositorio de GitHub
+
+```{r cars}
+library(tidyverse)
+library(ggplot2)
+
+url = 'https://raw.githubusercontent.com/calarcond/machine_learning_model/main/archivos_trabajo/titanic.csv'
+
+titanic = read_csv(url)
+
+summary(titanic)
+```
+
+
+```{r}
+table(is.na(titanic$Age))
+
+### Medidas de tendencia central:
+mean(titanic$Age, na.rm = TRUE)
+median(titanic$Age, na.rm= TRUE)
+
+### Histograma de la variable
+ggplot(data = titanic, aes(x = Age)) + geom_histogram()
+
+```
+
+
+```{r}
+titanic_mean = titanic
+promedio = mean(titanic$Age, na.rm = TRUE)
+
+titanic_mean = titanic_mean %>% mutate(Age = case_when(is.na(Age) ~ promedio,
+                                                        TRUE ~ Age))
+
+table(is.na(titanic_mean$Age))
+
+ggplot(data = titanic_mean, aes(x = Age))+ geom_histogram()
+mean(titanic_mean$Age)
+```
+
+
+```{r}
+## Imputación por promedio móvil
+
+library(imputeTS)
+titanic_varios_imp = titanic
+
+na_mean(titanic_varios_imp$Age)
+
+titanic_varios_imp$Age = na_ma(titanic_varios_imp$Age)
+
+ggplot(data = titanic_varios_imp, aes(x = Age))+ geom_histogram() + ggtitle('Imputación por promedio móvil')
+mean(titanic_varios_imp$Age)
+
+```
+
+
+```{r}
+
+## Imputación por interpolación
+
+titanic_interpolacion = titanic
+
+titanic_interpolacion$Age = na_interpolation(titanic_interpolacion$Age)
+
+ggplot(data = titanic_interpolacion, aes(x = Age))+ geom_histogram() + ggtitle('Imputación por interpolación')
+
+mean(titanic_interpolacion$Age)
+
+```
+
+
+```{r}
+## Imputación por modelos de machine learning
+
+library(DMwR2)
+
+titanic_ml = titanic
+numericas = titanic_ml[,c(2,3,6,7,8,10)]
+imputado = knnImputation(numericas, k = 3)
+
+titanic_ml$Age = imputado$Age
+
+ggplot(data = titanic_ml, aes(x = Age))+ geom_histogram() + ggtitle('Imputación por K-vecinos más cercanos')
+
+mean(titanic_ml$Age)
+```
+
+
+```{r}
+
+## One Hot Encoding
+
+library(caret)
+dummy_var = dummyVars("~.", data = titanic[,c(2,3,5,6,7,8)])
+titanic_final = data.frame(predict(dummy_var, newdata = titanic[,c(2,3,5,6,7,8)]))
+  
+View(titanic_final)
+
+
+
+```
+
